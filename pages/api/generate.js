@@ -1,5 +1,3 @@
-// pages/api/generate.js
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -7,20 +5,16 @@ export default async function handler(req, res) {
 
   const { prompt } = req.body;
 
-  if (!prompt) {
-    return res.status(400).json({ error: "Prompt is required" });
-  }
-
   try {
     const response = await fetch("https://api.deepinfra.com/v1/openai/images/generations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.API_KEY}`, // 🔑 use env var
+        Authorization: `Bearer ${process.env.API_KEY}`, // make sure you set this in Vercel
       },
       body: JSON.stringify({
-        prompt: prompt,
-        size: "1024x1024",
+        prompt,
+        size: "512x512",
         model: "black-forest-labs/FLUX-1.1-pro",
         n: 1,
       }),
@@ -28,13 +22,9 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    if (!response.ok) {
-      return res.status(500).json({ error: data.error || "Failed to generate image" });
-    }
-
-    // DeepInfra returns images in data.data[0].url (similar to OpenAI style)
-    return res.status(200).json({ imageUrl: data.data[0].url });
+    // Send base64 string back
+    res.status(200).json({ image: data.data[0].b64_json });
   } catch (error) {
-    return res.status(500).json({ error: error.message || "Something went wrong" });
+    res.status(500).json({ error: error.message });
   }
 }
